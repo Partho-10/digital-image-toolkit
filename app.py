@@ -21,7 +21,7 @@ if uploaded_file is not None:
     processed_img = img_array.copy()
     
     st.subheader("📷 Original Image")
-    st.image(img_array, caption="Original Image", width=300)  # ছোট width → মোবাইল friendly
+    st.image(img_array, caption="Original Image", width=300)  
     
     # --- Image Operations ---
     st.subheader("🎨 Image Operations")
