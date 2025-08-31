@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import cv2
 from PIL import Image
+from io import BytesIO
 
 st.set_page_config(page_title="✨ Digital Image Toolkit ✨", layout="wide")
 st.title("✨ Digital Image Toolkit ✨")
@@ -66,8 +67,15 @@ if uploaded_file is not None:
         processed_img = cv2.GaussianBlur(processed_img, (2*k+1, 2*k+1), 0)
         st.image(processed_img, caption=f"Smoothing Applied ({k})", width=300)
     
-    # --- Save Image ---
+    # --- Save / Download Image ---
     if st.button("Save Enhanced Image"):
         save_image = Image.fromarray(processed_img)
-        save_image.save("enhanced_image.jpg")
-        st.success("✅ Image saved as enhanced_image.jpg")
+        buf = BytesIO()
+        save_image.save(buf, format="JPEG")
+        byte_im = buf.getvalue()
+        st.download_button(
+            label="📥 Download Enhanced Image",
+            data=byte_im,
+            file_name="enhanced_image.jpg",
+            mime="image/jpeg"
+        )
