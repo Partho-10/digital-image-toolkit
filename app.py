@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 from PIL import Image
 from io import BytesIO
+import matplotlib.pyplot as plt
 
 # --- Page Configuration (Must be the first Streamlit command) ---
 st.set_page_config(page_title="✨ Digital Image Toolkit ✨", layout="wide")
@@ -11,7 +12,6 @@ st.title("✨ Digital Image Toolkit ✨")
 # --- Sidebar Profile ---
 with st.sidebar:
     st.header("👤 Profile")
-    # Make sure you have the "Partho.JPG" image in the same folder as your script
     try:
         st.image("Partho.JPG", width=120)
     except FileNotFoundError:
@@ -23,15 +23,12 @@ with st.sidebar:
 uploaded_file = st.file_uploader("Select an image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    # Read the uploaded image
     img = Image.open(uploaded_file)
     original_img_array = np.array(img.convert("RGB"))
 
-    # Initialize session state only if it's the first run or a new image is uploaded
-    # We use the file's unique file_id to check if it's a new upload
     if "processed_img" not in st.session_state or "last_image_id" not in st.session_state or st.session_state.last_image_id != uploaded_file.file_id:
         st.session_state.processed_img = original_img_array.copy()
-        st.session_state.last_image_id = uploaded_file.file_id 
+        st.session_state.last_image_id = uploaded_file.file_id
 
     # --- Display Original + Processed side by side ---
     col1, col2 = st.columns(2)
@@ -43,6 +40,23 @@ if uploaded_file is not None:
     with col2:
         st.subheader("✨ Processed Image")
         st.image(st.session_state.processed_img, caption="Processed Image", use_container_width=True)
+
+        # --- Histogram Expander (New Feature) ---
+        with st.expander("📊 View Histogram"):
+            # Calculate histogram
+            # Convert image to grayscale for histogram calculation
+            gray_hist = cv2.cvtColor(st.session_state.processed_img, cv2.COLOR_RGB2GRAY)
+            hist = cv2.calcHist([gray_hist], [0], None, [256], [0, 256])
+            
+            # Plot histogram using Matplotlib
+            fig, ax = plt.subplots()
+            ax.plot(hist, color='gray')
+            ax.set_title("Image Intensity Histogram")
+            ax.set_xlabel("Pixel Intensity (0-255)")
+            ax.set_ylabel("Frequency")
+            ax.grid(True, linestyle='--', alpha=0.6)
+            st.pyplot(fig)
+
 
     # --- Image Operations ---
     st.subheader("🎨 Image Operations")
@@ -72,6 +86,13 @@ if uploaded_file is not None:
 
     # --- Sliders for adjustments ---
     st.subheader("⚙️ Adjustments")
+    
+    # --- Contrast Adjustment (New Feature) ---
+    contrast_val = st.slider("Contrast Level", 0.5, 2.5, 1.0, 0.1)
+    if st.button("Apply Contrast", key="btn_contrast"):
+        # alpha controls contrast (1.0 is no change), beta controls brightness (0 is no change)
+        st.session_state.processed_img = cv2.convertScaleAbs(st.session_state.processed_img, alpha=contrast_val, beta=0)
+        st.rerun()
 
     threshold_val = st.slider("Threshold Limit", 0, 255, 128)
     if st.button("Apply Threshold", key="btn_thresh"):
@@ -97,7 +118,6 @@ if uploaded_file is not None:
 
     # --- Save / Download Image ---
     st.subheader("💾 Save Image")
-
     processed_image_pil = Image.fromarray(st.session_state.processed_img)
     buf = BytesIO()
     processed_image_pil.save(buf, format="PNG")
