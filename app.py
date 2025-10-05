@@ -19,52 +19,73 @@ uploaded_file = st.file_uploader("Select an image", type=["jpg", "jpeg", "png"])
 if uploaded_file is not None:
     img = Image.open(uploaded_file)
     img_array = np.array(img.convert("RGB"))
-    processed_img = img_array.copy()
-    
-    st.subheader("📷 Original Image")
-    st.image(img_array, caption="Original Image", width=300)  
-    
+
+    # Initialize session state for processed image
+    if "processed_img" not in st.session_state:
+        st.session_state.processed_img = img_array.copy()
+
+    # --- Show Original + Processed side by side ---
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("📷 Original Image")
+        st.image(img_array, caption="Original Image", width=300)
+
+    with col2:
+        st.subheader("✨ Processed Image")
+        st.image(st.session_state.processed_img, caption="Enhanced Image", width=300)
+
     # --- Image Operations ---
     st.subheader("🎨 Image Operations")
-    col1, col2, col3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     
-    with col1:
-        if st.button("Convert to Negative"):
-            processed_img = cv2.bitwise_not(processed_img)
-            st.image(processed_img, caption="Negative Image", width=300)
+    with c1:
+        if st.button("Convert to Negative", key="btn_neg"):
+            st.session_state.processed_img = cv2.bitwise_not(st.session_state.processed_img)
     
-    with col2:
-        if st.button("Convert to Grayscale"):
-            gray = cv2.cvtColor(processed_img, cv2.COLOR_RGB2GRAY)
-            processed_img = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
-            st.image(processed_img, caption="Grayscale Image", width=300)
+    with c2:
+        if st.button("Convert to Grayscale", key="btn_gray"):
+            gray = cv2.cvtColor(st.session_state.processed_img, cv2.COLOR_RGB2GRAY)
+            st.session_state.processed_img = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
     
-    with col3:
-        if st.button("Resize to 300x300"):
-            processed_img = cv2.resize(processed_img, (300, 300))
-            st.image(processed_img, caption="Resized Image", width=300)
+    with c3:
+        if st.button("Resize to 300x300", key="btn_resize"):
+            st.session_state.processed_img = cv2.resize(st.session_state.processed_img, (300, 300))
+
+    with c4:
+        if st.button("🔄 Reset Image", key="btn_reset"):
+            st.session_state.processed_img = img_array.copy()
     
     # --- Sliders for adjustments ---
     st.subheader("⚙️ Adjustments")
     
     threshold_val = st.slider("Threshold Limit", 0, 255, 128)
-    if st.button("Apply Threshold"):
-        gray = cv2.cvtColor(processed_img, cv2.COLOR_RGB2GRAY)
+    if st.button("Apply Threshold", key="btn_thresh"):
+        gray = cv2.cvtColor(st.session_state.processed_img, cv2.COLOR_RGB2GRAY)
         _, thres = cv2.threshold(gray, threshold_val, 255, cv2.THRESH_BINARY)
-        processed_img = cv2.cvtColor(thres, cv2.COLOR_GRAY2RGB)
-        st.image(processed_img, caption=f"Threshold Applied ({threshold_val})", width=300)
+        st.session_state.processed_img = cv2.cvtColor(thres, cv2.COLOR_GRAY2RGB)
     
     sharp_val = st.slider("Sharpening Intensity", 1, 10, 1)
-    if st.button("Apply Sharpen"):
+    if st.button("Apply Sharpen", key="btn_sharp"):
         k = sharp_val
         kernel = np.array([[-1,-1,-1], [-1,9+k,-1], [-1,-1,-1]])
-        processed_img = cv2.filter2D(processed_img, -1, kernel)
-        st.image(processed_img, caption=f"Sharpen Applied ({k})", width=300)
+        st.session_state.processed_img = cv2.filter2D(st.session_state.processed_img, -1, kernel)
     
     smooth_val = st.slider("Smoothing Intensity", 1, 10, 1)
-    if st.button("Apply Smoothing"):
+    if st.button("Apply Smoothing", key="btn_smooth"):
         k = smooth_val
-        processed_img = cv2.GaussianBlur(processed_img, (2*k+1, 2*k+1), 0)
-        st.image(processed_img, caption=f"Smoothing Applied ({k})", width=300)
-    
-   
+        st.session_state.processed_img = cv2.GaussianBlur(st.session_state.processed_img, (2*k+1, 2*k+1), 0)
+
+    # --- Save / Download Image ---
+    st.subheader("💾 Save Image")
+    if st.button("Save Enhanced Image", key="btn_save"):
+        save_image = Image.fromarray(st.session_state.processed_img)
+        buf = BytesIO()
+        save_image.save(buf, format="JPEG")
+        byte_im = buf.getvalue()
+        st.download_button(
+            label="📥 Download Enhanced Image",
+            data=byte_im,
+            file_name="enhanced_image.jpg",
+            mime="image/jpeg"
+        )
