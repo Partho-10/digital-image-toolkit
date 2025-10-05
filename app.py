@@ -38,11 +38,11 @@ if uploaded_file is not None:
 
     with col1:
         st.subheader("📷 Original Image")
-        st.image(original_img_array, caption="Original Image", use_column_width=True)
+        st.image(original_img_array, caption="Original Image", use_container_width=True)
 
     with col2:
         st.subheader("✨ Processed Image")
-        st.image(st.session_state.processed_img, caption="Processed Image", use_column_width=True)
+        st.image(st.session_state.processed_img, caption="Processed Image", use_container_width=True)
 
     # --- Image Operations ---
     st.subheader("🎨 Image Operations")
